@@ -1,22 +1,37 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import * as Icon from "react-feather";
 
 import "./App.css";
-import { removeTodoAPI } from "./api/todoAPI";
+import { editTodo, removeTodoAPI, taskCompleted } from "./api/todoAPI";
 
 const App = () => {
   const url = "http://localhost:80";
 
   const [task, setTask] = useState([]);
   const [addTask, setAddTask] = useState("");
+  const [view, setView] = useState(1);
+  const [mode, setMode] = useState(false);
+  const [todoId, settodoId] = useState(null);
+  const textInput = useRef(null);
 
   const getAllTodo = () => {
     axios
       .get(`${url}/api/todo/get-todos`)
       .then((res) => {
         const { result } = res.data;
-        setTask(result);
+        if (view === 1) setTask(result);
+        else if (view === 3) {
+          const data = result.filter((todo) => {
+            return todo.status === "completed";
+          });
+          setTask(data);
+        } else {
+          const data = result.filter((todo) => {
+            return todo.status === "Incomplate";
+          });
+          setTask(data);
+        }
       })
       .catch((err) => {
         console.log(err, err.response);
@@ -24,35 +39,32 @@ const App = () => {
   };
   useEffect(() => {
     getAllTodo();
-  }, []);
+  }, [view]);
 
-  const addTaskHandler = (e) => {
-    if (e.which === 13 && !addTask.length === 0) {
-      axios
-        .post(`${url}/api/todo/create-todo`, {
-          name: addTask,
-        })
-        .then((res) => {
-          // const { result } = res.data;
-          getAllTodo();
-          setAddTask("");
-        })
-        .catch((err) => {
-          console.log(err, err.response);
-        });
+  const addTaskHandler = async (e) => {
+    if (e.which === 13 && addTask.length > 0) {
+      if (mode !== true) {
+        axios
+          .post(`${url}/api/todo/create-todo`, {
+            name: addTask,
+          })
+          .then((res) => {
+            // const { result } = res.data;
+            getAllTodo();
+            setAddTask("");
+          })
+          .catch((err) => {
+            console.log(err, err.response);
+          });
+      } else {
+        const data = await editTodo(todoId, { name: addTask });
+        settodoId(null);
+        setMode(false);
+        getAllTodo();
+      }
     } else if (e.which === 13) {
       alert("Please enter new task");
     }
-    // $(document).on('.todo-list .todo-item.added input').click(function () {
-    //   if ($(this).is(':checked')) {
-    //     $(this).parent().parent().parent().toggleClass('complete');
-    //   } else {
-    //     $(this).parent().parent().parent().toggleClass('complete');
-    //   }
-    // });
-    // $('.todo-list .todo-item.added .remove-todo-item').click(function () {
-    //   $(this).parent().remove();
-    // });
   };
 
   const onRemoveTodo = async (id) => {
@@ -61,6 +73,26 @@ const App = () => {
       getAllTodo();
     } catch (err) {}
   };
+
+  const onUpdateTodo = async (task) => {
+    textInput.current.focus();
+    setAddTask(task.name);
+    setMode(true);
+    settodoId(task.id);
+  };
+
+  const onCompletedTodo = async (id, e) => {
+    try {
+      const data = {
+        isChecked: e.target.checked,
+      };
+      const result = await taskCompleted(id, data);
+      getAllTodo();
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
   return (
     <div className="App">
       <div className="container">
@@ -68,31 +100,32 @@ const App = () => {
           <div className="col-md-12">
             <div className="card card-white">
               <div className="card-body">
-                <form>
+                <form onSubmit={(e) => e.preventDefault()}>
                   <input
                     type="text"
                     className="form-control add-task"
                     placeholder="New Task..."
                     value={addTask}
+                    ref={textInput}
                     onChange={(e) => setAddTask(e.target.value)}
                     onKeyPress={(e) => addTaskHandler(e)}
                   />
                 </form>
                 <ul className="nav nav-pills todo-nav">
                   <li role="presentation" className="nav-item all-task active">
-                    <a href="/" className="nav-link">
+                    <button className="nav-link" onClick={() => setView(1)}>
                       All
-                    </a>
+                    </button>
                   </li>
                   <li role="presentation" className="nav-item active-task">
-                    <a href="/" className="nav-link">
+                    <button className="nav-link" onClick={() => setView(2)}>
                       Active
-                    </a>
+                    </button>
                   </li>
                   <li role="presentation" className="nav-item completed-task">
-                    <a href="/" className="nav-link">
+                    <button className="nav-link" onClick={() => setView(3)}>
                       Completed
-                    </a>
+                    </button>
                   </li>
                 </ul>
                 <div className="todo-list">
@@ -101,14 +134,39 @@ const App = () => {
                       <div className="todo-item" key={task.id}>
                         <div className="checker">
                           <span className="">
-                            <input type="checkbox" />
+                            <input
+                              type="checkbox"
+                              defaultChecked={
+                                task.status === "completed" ? true : false
+                              }
+                              onChange={(e) => {
+                                onCompletedTodo(task.id, e);
+                                const taskData = document.getElementById(
+                                  `chk${task.id}`
+                                );
+                                if (e.target.checked) {
+                                  taskData.innerHTML = `<s className="text-muted">${task.name}</s>`;
+                                }
+                              }}
+                            />
                           </span>
-                        </div>
-                        <span>{" " + task.name}</span>
+                        </div>{" "}
+                        <span id={`chk${task.id}`}>
+                          {task.status === "completed" ? (
+                            <s className="text-muted">{task.name}</s>
+                          ) : (
+                            task.name
+                          )}
+                        </span>
                         <Icon.Trash
                           color="red"
                           size={22}
                           onClick={() => onRemoveTodo(task.id)}
+                        />
+                        <Icon.Edit
+                          color="orange"
+                          size={22}
+                          onClick={() => onUpdateTodo(task)}
                         />
                       </div>
                     );
