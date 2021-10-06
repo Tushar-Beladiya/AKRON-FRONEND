@@ -120,3 +120,8 @@ div.uploader {
   float: right;
   cursor: pointer;
 }
+span.rounded-pill {
+  margin-right: 10px;
+  height: 30px;
+  width: 40px;
+}

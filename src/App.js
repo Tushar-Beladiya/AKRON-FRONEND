@@ -3,7 +3,13 @@ import axios from "axios";
 import * as Icon from "react-feather";
 
 import "./App.css";
-import { editTodo, removeTodoAPI, taskCompleted } from "./api/todoAPI";
+import {
+  editTodo,
+  getMostProductiveDays,
+  removeTodoAPI,
+  taskCompleted,
+} from "./api/todoAPI";
+import ProductiveDay from "./components/ProductiveDay";
 
 const App = () => {
   const url = "http://localhost:80";
@@ -13,12 +19,13 @@ const App = () => {
   const [view, setView] = useState(1);
   const [mode, setMode] = useState(false);
   const [todoId, settodoId] = useState(null);
+  const [prodDate, setprodDate] = useState([]);
   const textInput = useRef(null);
 
-  const getAllTodo = () => {
+  const getAllTodo = async () => {
     axios
       .get(`${url}/api/todo/get-todos`)
-      .then((res) => {
+      .then(async (res) => {
         const { result } = res.data;
         if (view === 1) setTask(result);
         else if (view === 3) {
@@ -26,17 +33,22 @@ const App = () => {
             return todo.status === "completed";
           });
           setTask(data);
-        } else {
+        } else if (view === 2) {
           const data = result.filter((todo) => {
             return todo.status === "Incomplate";
           });
           setTask(data);
+        } else {
+          const data = await getMostProductiveDays();
+          console.log(data);
+          setprodDate(data.result);
         }
       })
       .catch((err) => {
         console.log(err, err.response);
       });
   };
+
   useEffect(() => {
     getAllTodo();
   }, [view]);
@@ -127,51 +139,60 @@ const App = () => {
                       Completed
                     </button>
                   </li>
+                  <li role="presentation" className="nav-item completed-task">
+                    <button className="nav-link" onClick={() => setView(4)}>
+                      Most Productive Days
+                    </button>
+                  </li>
                 </ul>
-                <div className="todo-list">
-                  {task.map((task) => {
-                    return (
-                      <div className="todo-item" key={task.id}>
-                        <div className="checker">
-                          <span className="">
-                            <input
-                              type="checkbox"
-                              defaultChecked={
-                                task.status === "completed" ? true : false
-                              }
-                              onChange={(e) => {
-                                onCompletedTodo(task.id, e);
-                                const taskData = document.getElementById(
-                                  `chk${task.id}`
-                                );
-                                if (e.target.checked) {
-                                  taskData.innerHTML = `<s className="text-muted">${task.name}</s>`;
+                {view === 4 ? (
+                  <ProductiveDay task={prodDate} />
+                ) : (
+                  <div className="todo-list">
+                    {task.map((task) => {
+                      return (
+                        <div className="todo-item" key={task.id}>
+                          <div className="checker">
+                            <span className="">
+                              <input
+                                type="checkbox"
+                                defaultChecked={
+                                  task.status === "completed" ? true : false
                                 }
-                              }}
-                            />
+                                onChange={(e) => {
+                                  onCompletedTodo(task.id, e);
+                                  const taskData = document.getElementById(
+                                    `chk${task.id}`
+                                  );
+                                  if (e.target.checked) {
+                                    taskData.innerHTML = `<s className="text-muted">${task.name}</s>`;
+                                  }
+                                }}
+                              />
+                            </span>
+                          </div>{" "}
+                          <span id={`chk${task.id}`}>
+                            {task.status === "completed" ? (
+                              <s className="text-muted">{task.name}</s>
+                            ) : (
+                              task.name
+                            )}
                           </span>
-                        </div>{" "}
-                        <span id={`chk${task.id}`}>
-                          {task.status === "completed" ? (
-                            <s className="text-muted">{task.name}</s>
-                          ) : (
-                            task.name
-                          )}
-                        </span>
-                        <Icon.Trash
-                          color="red"
-                          size={22}
-                          onClick={() => onRemoveTodo(task.id)}
-                        />
-                        <Icon.Edit
-                          color="orange"
-                          size={22}
-                          onClick={() => onUpdateTodo(task)}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
+                          <Icon.Trash
+                            color="red"
+                            size={22}
+                            onClick={() => onRemoveTodo(task.id)}
+                          />
+                          <Icon.Edit
+                            color="orange"
+                            size={22}
+                            onClick={() => onUpdateTodo(task)}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
