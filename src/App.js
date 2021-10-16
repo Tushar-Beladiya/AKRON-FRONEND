@@ -1,16 +1,10 @@
-import { useEffect, useRef, useState } from "react";
 import axios from "axios";
+import { useEffect, useRef, useState } from "react";
 import * as Icon from "react-feather";
-
+import { getMostProductiveDays } from "./api/todoAPI";
 import "./App.css";
-import {
-  editTodo,
-  getMostProductiveDays,
-  removeTodoAPI,
-  taskCompleted,
-} from "./api/todoAPI";
-import ProductiveDay from "./components/ProductiveDay";
 import Analytics from "./components/Analytics/Analytics";
+import ProductiveDay from "./components/ProductiveDay";
 
 const App = () => {
   const url = "http://localhost:80";
@@ -19,7 +13,6 @@ const App = () => {
   const [addTask, setAddTask] = useState("");
   const [view, setView] = useState(1);
   const [mode, setMode] = useState(false);
-  const [todoId, settodoId] = useState(null);
   const [prodDate, setprodDate] = useState([]);
   const textInput = useRef(null);
 
@@ -52,6 +45,7 @@ const App = () => {
 
   useEffect(() => {
     getAllTodo();
+    // eslint-disable-next-line
   }, [view]);
 
   const addTaskHandler = async (e) => {
@@ -70,8 +64,6 @@ const App = () => {
             console.log(err, err.response);
           });
       } else {
-        const data = await editTodo(todoId, { name: addTask });
-        settodoId(null);
         setMode(false);
         getAllTodo();
       }
@@ -82,24 +74,18 @@ const App = () => {
 
   const onRemoveTodo = async (id) => {
     try {
-      const data = await removeTodoAPI(id);
       getAllTodo();
-    } catch (err) { }
+    } catch (err) {}
   };
 
   const onUpdateTodo = async (task) => {
     textInput.current.focus();
     setAddTask(task.name);
     setMode(true);
-    settodoId(task.id);
   };
 
   const onCompletedTodo = async (id, e) => {
     try {
-      const data = {
-        isChecked: e.target.checked,
-      };
-      const result = await taskCompleted(id, data);
       getAllTodo();
     } catch (err) {
       console.log(err);

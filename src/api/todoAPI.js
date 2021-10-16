@@ -1,4 +1,4 @@
-import { apiDelete, apiGet, apiPatch, apiPost } from ".";
+import { apiDelete, apiGet, apiPatch } from ".";
 import { API_URL } from "./constant";
 
 export const getAllTodosAPI = () => apiGet(`${API_URL}/todo/get-todos`);
