@@ -1,11 +1,10 @@
 import React from "react";
 
 const ProductiveDay = ({ task }) => {
-  console.log("task===", task);
   return (
     <>
       <div className="todo-list">
-        {task.map((task,key) => {
+        {task.map((task, key) => {
           console.log(task.id);
           return (
             <div className="todo-item" key={key}>
